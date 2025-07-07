@@ -1,71 +1,31 @@
-import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+import sys
 import streamlit as st
 from dotenv import load_dotenv
+
+# Add parent directory to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from gemini.chat import ChatGemini
 
 # Load environment variables
 load_dotenv()
 
-# Configure the page
-st.set_page_config(page_title="Gemini Pro Streamlit Chatbot", layout="centered")
+# Configure page
+st.set_page_config(page_title="Gemini Pro Streamlit Chatbot", layout="wide")
+st.title("💬 Gemini Pro Streamlit Chatbot")
 
-# Dark/Light mode toggle
-mode = st.sidebar.selectbox("Theme", ["Light", "Dark"])
-background = "#FFFFFF" if mode == "Light" else "#1E1E1E"
-text_color = "#000000" if mode == "Light" else "#FFFFFF"
-user_bubble = "#DCF8C6" if mode == "Light" else "#2E7D32"
-bot_bubble = "#F1F0F0" if mode == "Light" else "#333333"
-
-# Page Title
-st.markdown(
-    f"<h1 style='color:{text_color}; text-align:center;'>💬 Gemini Pro Streamlit Chatbot</h1>",
-    unsafe_allow_html=True
-)
-
-# Initialize Gemini
+# Initialize chat class
 gemini_chat = ChatGemini()
 
-# Image Paths
-USER_IMG = "assets/user.jpg"
-BOT_IMG = "assets/bot.jpg"
-
-# Chat history
+# Chat history session state
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# Chat Messages Display
-for i, (role, message) in enumerate(st.session_state.chat_history):
-    col1, col2 = st.columns([1, 9]) if role == "user" else st.columns([9, 1])
-    bubble_color = user_bubble if role == "user" else bot_bubble
-    image = USER_IMG if role == "user" else BOT_IMG
-
-    with col1 if role == "user" else col2:
-        st.image(image, width=60)
-    with col2 if role == "user" else col1:
-        st.markdown(
-            f"""
-            <div style='
-                background-color:{bubble_color};
-                color:{text_color};
-                padding: 12px;
-                border-radius: 10px;
-                margin-bottom: 5px;
-                font-family: Arial, sans-serif;
-                line-height: 1.5;
-            '>{message}</div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-# Scroll to bottom hack
-st.markdown("<div id='chat-bottom'></div>", unsafe_allow_html=True)
-
-# Input box
+# Chat input at the bottom
 user_input = st.chat_input("Type your message here...")
 
+# First handle the response
 if user_input:
     st.session_state.chat_history.append(("user", user_input))
     try:
@@ -73,8 +33,30 @@ if user_input:
         st.session_state.chat_history.append(("bot", response))
     except Exception as e:
         st.error(f"Error generating response: {e}")
-    # Scroll trigger
-    st.markdown(
-        "<script>document.getElementById('chat-bottom').scrollIntoView({behavior: 'smooth'});</script>",
-        unsafe_allow_html=True
-    )
+
+# Now display the chat history
+user_image_path = os.path.join(os.path.dirname(__file__), "assets", "user.jpg")
+bot_image_path = os.path.join(os.path.dirname(__file__), "assets", "bot.jpg")
+
+for role, message in st.session_state.chat_history:
+    with st.container():
+        if role == "user":
+            col1, col2 = st.columns([1, 9])
+            with col1:
+                st.image(user_image_path, width=50)
+            with col2:
+                st.markdown(f"""
+                <div style='background-color:#f0f0f5; padding:10px; border-radius:10px;'>
+                    <strong>You:</strong> {message}
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            col1, col2 = st.columns([9, 1])
+            with col2:
+                st.image(bot_image_path, width=50)
+            with col1:
+                st.markdown(f"""
+                <div style='background-color:#e6f2ff; padding:10px; border-radius:10px;'>
+                    <strong>Gemini:</strong> {message}
+                </div>
+                """, unsafe_allow_html=True)
